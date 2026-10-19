@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Assistant SAV</title>
+</head>
+<body>
+  <h1>Assistant SAV</h1>
+
+  Client : <select id="user"></select>
+  <button id="reset">Nouvelle conversation</button>
+
+  <div id="chat"></div>
+
+  <form id="form">
+    <input id="input" size="60" placeholder="Votre question">
+    <button>Envoyer</button>
+  </form>
+
+<script>
+  const chat = document.getElementById("chat");
+  const user = document.getElementById("user");
+  const input = document.getElementById("input");
+
+  // Ajoute une ligne de texte dans le chat
+  function show(text) {
+    const p = document.createElement("p");
+    p.textContent = text;
+    chat.appendChild(p);
+  }
+
+  // Envoie une requête POST au serveur, avec le client dans l'en-tête X-User
+  async function post(path, body) {
+    const res = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-User": user.value },
+      body: JSON.stringify(body),
+    });
+    return res.json();
+  }
+
+  //Au chargement : GET /api/users pour remplir le menu des clients
+  fetch("/api/users")
+    .then((r) => r.json())
+    .then((names) => names.forEach((n) => user.add(new Option(n))));
+
+  //Bouton Envoyer : POST /api/chat
+  document.getElementById("form").onsubmit = async (e) => {
+    e.preventDefault();              // pour pa que la page de se recharge
+    const question = input.value;
+    input.value = "";
+    show("Vous : " + question);
+    const data = await post("/api/chat", { message: question });
+    show("Assistant : " + (data.answer || "erreur"));
+  };
+
+  //Bouton Nouvelle conversation : POST /api/reset
+  document.getElementById("reset").onclick = async () => {
+    await post("/api/reset", {});
+    chat.innerHTML = "";
+  };
+
+  // Changer de client vide l'affichage
+  user.onchange = () => (chat.innerHTML = "");
+</script>
+</body>
+</html>
